@@ -1,6 +1,6 @@
 # marvel #
 
-Welcome to marvel!
+Welcome to marvel! You have found the absolute command line tool to put some serious super hero experience into your shell! Remember, you become what you do. The more you use the `marvel` CLI, the sooner you'll be one!
 
 ## Contribution policy ##
 
@@ -8,4 +8,14 @@ Contributions via GitHub pull requests are gladly accepted from their original a
 
 ## License ##
 
-This code is open source software licensed under the [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0.html).
+This code is open source software licensed under the [MIT License](https://opensource.org/licenses/MIT).
+
+# Project Setup
+
+```sh
+mkdir marvel
+cd marvel
+sbt -sbt-create # using https://github.com/paulp/sbt-extras
+> fresh name=marvel // using https://github.com/sbt/sbt-fresh
+> ensimeConfig
+```
