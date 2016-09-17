@@ -37,21 +37,48 @@ class MarvelAPIClient {
     s"apikey=$publicKey&ts=$timestamp&hash=$hash"
   }
 
-  def buildFullUrl(apiSpecifics: String) =
-    s"$baseUrl/$apiSpecifics&${ signatureParam() }"
+  def paginationParam(offset: Int, limit: Int) =
+    s"limit=$limit&offset=$offset"
+
+  def buildFullUrl(apiSpecifics: String, offset: Int, limit: Int) =
+    s"$baseUrl/$apiSpecifics&${ paginationParam(offset, limit) }&${ signatureParam() }"
 
   def listCharacterNames(): String =
-    parse(
-      scala.io.Source.fromURL(buildFullUrl("characters?orderBy=name")).mkString
-    ) match {
-      case Xor.Left(failure) => s"Invalid data received from $baseUrl"
-      case Xor.Right(json) =>
-        val chars = json.hcursor
-          .downField("data")
-          .downField("results")
-          .focus
-          .flatMap(_.asArray)
-          .getOrElse(Nil)
-        chars.flatMap(_.cursor.get[String]("name").toOption).mkString("\n")
+    fetchCharacters(new StringBuilder(), 0, 100, None)
+
+  @scala.annotation.tailrec
+  final def fetchCharacters(buffer: StringBuilder,
+                            offset: Int,
+                            limit: Int,
+                            total: Option[Int]): String = {
+    if (total.exists(_ <= offset)) {
+      buffer.toString()
+    } else {
+      val url = buildFullUrl("characters?orderBy=name", offset, limit)
+      parse(scala.io.Source.fromURL(url).mkString) match {
+        case Xor.Left(failure) => s"Invalid data received from $baseUrl"
+        case Xor.Right(json) =>
+          val actualTotal = total orElse {
+            json.hcursor.downField("data").downField("total").as[Int].toOption
+          }
+          val count = json.hcursor
+            .downField("data")
+            .downField("count")
+            .as[Int]
+            .getOrElse(0)
+          val chars = json.hcursor
+            .downField("data")
+            .downField("results")
+            .focus
+            .flatMap(_.asArray)
+            .getOrElse(Nil)
+          val names =
+            chars.flatMap(_.cursor.get[String]("name").toOption).mkString("\n")
+          fetchCharacters(buffer.append(names),
+                          offset + count,
+                          limit,
+                          actualTotal)
+      }
     }
+  }
 }

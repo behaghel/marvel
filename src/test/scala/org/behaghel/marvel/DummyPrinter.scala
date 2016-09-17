@@ -32,5 +32,6 @@ object DummyPrinter extends Printer {
   }
   def contains(s: String) = printed.contains(s)
   def clear()             = printed = ListBuffer.empty[String]
+  def toList()            = printed.toList
   override def toString() = printed.reverse.mkString
 }

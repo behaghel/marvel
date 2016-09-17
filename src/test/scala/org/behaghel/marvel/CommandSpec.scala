@@ -33,9 +33,16 @@ class CommandSpec extends FlatSpec with Matchers with BeforeAndAfterEach {
 
   val cmd = new Command
 
-  "Command" should "list Marvel characters" in {
+  "Command" should "list Marvel characters in alphabetical order" in {
     cmd.execute()
-    assert(dummyPrinter.contains("Agent Zero"))
+    val output = dummyPrinter.toList
+    output should contain inOrder ("Agent Zero", "Zzzax")
+    // lowercase or "Giant-dok" was not less than or equal to
+    // "Giant-Man (Ultimate)"
+    output.view.map(_.toLowerCase) shouldBe sorted
+    // output.view.zip(output.tail) foreach { pair =>
+    //   pair._1 should be <= pair._2
+    // }
   }
 
 }
