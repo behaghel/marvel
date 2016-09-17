@@ -22,7 +22,11 @@
 package org.behaghel.marvel
 
 object Utils {
-  lazy val md5 = java.security.MessageDigest.getInstance("MD5")
+  // TIL: do not store the MD5 instance in a lazy val
   def md5Digest(s: String) =
-    md5.digest(s.getBytes).map("%02x".format(_)).mkString
+    java.security.MessageDigest
+      .getInstance("MD5")
+      .digest(s.getBytes)
+      .map("%02x".format(_))
+      .mkString
 }

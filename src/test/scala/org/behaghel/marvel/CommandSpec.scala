@@ -33,7 +33,7 @@ class CommandSpec extends FlatSpec with Matchers with BeforeAndAfterEach {
 
   val cmd = new Command
 
-  "Marvel CLI" should "list Marvel Characters" in {
+  "Command" should "list Marvel characters" in {
     cmd.execute()
     assert(dummyPrinter.contains("Agent Zero"))
   }
