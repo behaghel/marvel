@@ -21,21 +21,21 @@
 
 package org.behaghel.marvel
 
-import org.scalatest._
+class MarvelAPIClient {
+  val baseUrl    = MarvelConfig.baseUrl
+  val privateKey = MarvelConfig.privateKey
+  val publicKey  = MarvelConfig.publicKey
 
-class CommandSpec extends FlatSpec with Matchers with BeforeAndAfterEach {
-
-  implicit val dummyPrinter = DummyPrinter
-
-  override def afterEach(): Unit = {
-    dummyPrinter.clear()
+  def signatureParam() = {
+    val timestamp: Long = System.currentTimeMillis / 1000
+    val toBeHashed      = s"$timestamp$privateKey$publicKey"
+    val hash            = Utils.md5Digest(toBeHashed)
+    s"apikey=$publicKey&ts=$timestamp&hash=$hash"
   }
 
-  val cmd = new Command
+  def buildFullUrl(apiSpecifics: String) =
+    s"$baseUrl/$apiSpecifics&${ signatureParam() }"
 
-  "Marvel CLI" should "list Marvel Characters" in {
-    cmd.execute()
-    assert(dummyPrinter.contains("Agent Zero"))
-  }
-
+  def listCharacterNames(): String =
+    io.Source.fromURL(buildFullUrl("characters?orderBy=name")).mkString
 }

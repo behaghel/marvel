@@ -21,21 +21,11 @@
 
 package org.behaghel.marvel
 
-import org.scalatest._
+import com.typesafe.config.ConfigFactory
 
-class CommandSpec extends FlatSpec with Matchers with BeforeAndAfterEach {
-
-  implicit val dummyPrinter = DummyPrinter
-
-  override def afterEach(): Unit = {
-    dummyPrinter.clear()
-  }
-
-  val cmd = new Command
-
-  "Marvel CLI" should "list Marvel Characters" in {
-    cmd.execute()
-    assert(dummyPrinter.contains("Agent Zero"))
-  }
-
+object MarvelConfig {
+  lazy val conf  = ConfigFactory.load()
+  def baseUrl    = conf.getString("marvel.api.baseUrl")
+  def privateKey = conf.getString("marvel.api.privateKey")
+  def publicKey  = conf.getString("marvel.api.publicKey")
 }

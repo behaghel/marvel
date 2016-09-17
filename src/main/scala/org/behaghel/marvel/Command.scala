@@ -22,5 +22,8 @@
 package org.behaghel.marvel
 
 class Command(implicit printer: Printer) {
-  def execute(): Unit = printer.print("Hello World")
+  lazy val client = new MarvelAPIClient
+  def execute(): Unit = {
+    printer.print(client.listCharacterNames())
+  }
 }

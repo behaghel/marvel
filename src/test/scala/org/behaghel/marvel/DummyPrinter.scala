@@ -21,21 +21,16 @@
 
 package org.behaghel.marvel
 
-import org.scalatest._
+import scala.collection.mutable.ListBuffer
 
-class CommandSpec extends FlatSpec with Matchers with BeforeAndAfterEach {
-
-  implicit val dummyPrinter = DummyPrinter
-
-  override def afterEach(): Unit = {
-    dummyPrinter.clear()
+object DummyPrinter extends Printer {
+  var printed = ListBuffer.empty[String]
+  override def print(s: String) = {
+    s.split("\n") foreach { line =>
+      printed += line
+    }
   }
-
-  val cmd = new Command
-
-  "Marvel CLI" should "list Marvel Characters" in {
-    cmd.execute()
-    assert(dummyPrinter.contains("Agent Zero"))
-  }
-
+  def contains(s: String) = printed.contains(s)
+  def clear()             = printed = ListBuffer.empty[String]
+  override def toString() = printed.reverse.mkString
 }

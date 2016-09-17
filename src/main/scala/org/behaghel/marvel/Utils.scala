@@ -21,21 +21,8 @@
 
 package org.behaghel.marvel
 
-import org.scalatest._
-
-class CommandSpec extends FlatSpec with Matchers with BeforeAndAfterEach {
-
-  implicit val dummyPrinter = DummyPrinter
-
-  override def afterEach(): Unit = {
-    dummyPrinter.clear()
-  }
-
-  val cmd = new Command
-
-  "Marvel CLI" should "list Marvel Characters" in {
-    cmd.execute()
-    assert(dummyPrinter.contains("Agent Zero"))
-  }
-
+object Utils {
+  lazy val md5 = java.security.MessageDigest.getInstance("MD5")
+  def md5Digest(s: String) =
+    md5.digest(s.getBytes).map("%02x".format(_)).mkString
 }
