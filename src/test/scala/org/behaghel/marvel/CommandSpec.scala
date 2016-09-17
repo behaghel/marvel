@@ -19,11 +19,28 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.behaghel
+package org.behaghel.marvel
 
-package object marvel {
-  type Traversable[+A] = scala.collection.immutable.Traversable[A]
-  type Iterable[+A]    = scala.collection.immutable.Iterable[A]
-  type Seq[+A]         = scala.collection.immutable.Seq[A]
-  type IndexedSeq[+A]  = scala.collection.immutable.IndexedSeq[A]
+import org.scalatest._
+import scala.collection.mutable.ListBuffer
+
+class CommandSpec extends FlatSpec with Matchers {
+
+  implicit object DummyPrinter extends Printer {
+    var printed = ListBuffer.empty[String]
+    override def print(s: String) = {
+      printed += s
+    }
+    def contains(s: String) = printed.contains(s)
+    def clear()             = printed = ListBuffer.empty[String]
+    override def toString() = printed.reverse.mkString
+  }
+
+  val cmd = new Command
+
+  "Marvel CLI" should "print Hello World" in {
+    cmd.execute()
+    assert(DummyPrinter.contains("Hello World"))
+  }
+
 }

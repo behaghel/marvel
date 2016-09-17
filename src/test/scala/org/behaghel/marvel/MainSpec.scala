@@ -19,11 +19,14 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.behaghel
+package org.behaghel.marvel
 
-package object marvel {
-  type Traversable[+A] = scala.collection.immutable.Traversable[A]
-  type Iterable[+A]    = scala.collection.immutable.Iterable[A]
-  type Seq[+A]         = scala.collection.immutable.Seq[A]
-  type IndexedSeq[+A]  = scala.collection.immutable.IndexedSeq[A]
+import org.scalatest._
+
+class MainSpec extends FlatSpec with Matchers {
+
+  "Marvel CLI" should "work" in {
+    Main.main(Array.empty[String])
+  }
+
 }
