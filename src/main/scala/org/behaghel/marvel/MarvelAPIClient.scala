@@ -21,6 +21,10 @@
 
 package org.behaghel.marvel
 
+import io.circe._
+import io.circe.parser._
+import cats.data.Xor
+
 class MarvelAPIClient {
   val baseUrl    = MarvelConfig.baseUrl
   val privateKey = MarvelConfig.privateKey
@@ -37,5 +41,17 @@ class MarvelAPIClient {
     s"$baseUrl/$apiSpecifics&${ signatureParam() }"
 
   def listCharacterNames(): String =
-    io.Source.fromURL(buildFullUrl("characters?orderBy=name")).mkString
+    parse(
+      scala.io.Source.fromURL(buildFullUrl("characters?orderBy=name")).mkString
+    ) match {
+      case Xor.Left(failure) => s"Invalid data received from $baseUrl"
+      case Xor.Right(json) =>
+        val chars = json.hcursor
+          .downField("data")
+          .downField("results")
+          .focus
+          .flatMap(_.asArray)
+          .getOrElse(Nil)
+        chars.flatMap(_.cursor.get[String]("name").toOption).mkString("\n")
+    }
 }
