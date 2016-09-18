@@ -22,6 +22,8 @@
 package org.behaghel.marvel
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import MarvelAPIClient._
 
 object Command {
   def from(arg: String, printer: Printer) = arg match {
@@ -42,6 +44,16 @@ class ListAllCommand(printer: Printer) extends Command {
     }
 }
 class Top10Command(printer: Printer) extends Command {
-  lazy val client                      = new MarvelAPIClient
-  override def execute(): Future[Unit] = client.listTop10(printer)
+  lazy val client = new MarvelAPIClient
+  override def execute(): Future[Unit] = {
+    val futureCharacters = client.withCharactersStreamAlpha(identity)
+    futureCharacters.map(
+      mostPopular(10) _ andThen (_.map(_.name)) andThen (printer.printlnAll _)
+    )
+  }
+
+  def mostPopular(
+      n: Int
+  )(characters: Seq[MarvelCharacter]): Seq[MarvelCharacter] =
+    characters.sortBy(_.issues).reverse.take(n)
 }

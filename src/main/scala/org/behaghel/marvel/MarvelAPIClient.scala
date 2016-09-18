@@ -27,7 +27,7 @@ import io.circe._
 import io.circe.parser._
 import cats.data.Xor
 
-class MarvelAPIClient {
+object MarvelAPIClient {
   val baseUrl    = MarvelConfig.baseUrl
   val privateKey = MarvelConfig.privateKey
   val publicKey  = MarvelConfig.publicKey
@@ -35,33 +35,51 @@ class MarvelAPIClient {
 
   object CharacterResponse {
     def buildFrom(json: Json) = CharacterResponse(
-      Character.buildSeqFrom(extractCharacters(json)),
+      MarvelCharacter.buildSeqFrom(extractCharacters(json)),
       extractIntData("offset")(json),
       extractIntData("count")(json),
       extractIntData("total")(json)
     )
   }
-  case class CharacterResponse(characters: Seq[Character],
+  case class CharacterResponse(characters: Seq[MarvelCharacter],
                                offset: Int,
                                count: Int,
                                total: Int) {
     def characterNames = characters.map(_.name)
   }
-  object Character {
+
+  object MarvelCharacter {
     def buildSeqFrom(jsonArray: Seq[Json]) = jsonArray map { characterJson =>
-      Character(extractName(characterJson), extractIssues(characterJson))
+      MarvelCharacter(extractName(characterJson), extractIssues(characterJson))
     }
   }
-  case class Character(name: String, issues: Int)
+  case class MarvelCharacter(name: String, issues: Int)
 
-  def listTop10(printer: Printer): Future[Unit] = {
-    Future(())
-  }
+  def extractIntData(field: String): Json => Int =
+    _.hcursor.downField("data").downField(field).as[Int].getOrElse(0)
 
-  def foreachCharacterInAlphaOrder(f: Character => Unit): Future[Unit] =
-    withCharactersStreamAlpha(f).map(_.head)
+  def extractCharacters(characterResponse: Json): Seq[Json] =
+    characterResponse.hcursor
+      .downField("data")
+      .downField("results")
+      .focus
+      .flatMap(_.asArray)
+      .getOrElse(Nil)
 
-  def withCharactersStreamAlpha[T](f: Character => T): Future[Seq[T]] = {
+  def extractName(character: Json): String =
+    character.cursor.get[String]("name").getOrElse("no name")
+
+  def extractIssues(character: Json): Int =
+    character.hcursor.downField("comics").get[Int]("available").getOrElse(-1)
+}
+
+class MarvelAPIClient {
+  import MarvelAPIClient._
+
+  def foreachCharacterInAlphaOrder(f: MarvelCharacter => Unit): Future[Unit] =
+    withCharactersStreamAlpha(f).map(_ => ())
+
+  def withCharactersStreamAlpha[T](f: MarvelCharacter => T): Future[Seq[T]] = {
     val futureFirstPage = requestCharacterPage(0, pageSize)
     futureFirstPage flatMap { firstPage =>
       val offsets = (firstPage.count + 1) to firstPage.total by pageSize // start from count
@@ -97,21 +115,4 @@ class MarvelAPIClient {
 
   private def buildFullUrl(apiSpecifics: String, offset: Int, limit: Int) =
     s"$baseUrl/$apiSpecifics&${ paginationParam(offset, limit) }&${ signatureParam() }"
-
-  def extractIntData(field: String): Json => Int =
-    _.hcursor.downField("data").downField(field).as[Int].getOrElse(0)
-
-  def extractCharacters(characterResponse: Json): Seq[Json] =
-    characterResponse.hcursor
-      .downField("data")
-      .downField("results")
-      .focus
-      .flatMap(_.asArray)
-      .getOrElse(Nil)
-
-  def extractName(character: Json): String =
-    character.cursor.get[String]("name").getOrElse("no name")
-
-  def extractIssues(character: Json): Int =
-    character.hcursor.downField("comics").get[Int]("available").getOrElse(-1)
 }

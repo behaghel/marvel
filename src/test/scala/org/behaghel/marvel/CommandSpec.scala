@@ -23,17 +23,24 @@ package org.behaghel.marvel
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.scalatest._
+import org.scalacheck._
+import MarvelAPIClient._
 
-class CommandSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterEach {
+class CommandSpec
+    extends AsyncFlatSpec
+    with Matchers
+    with BeforeAndAfterEach
+    with prop.PropertyChecks {
 
   override def afterEach(): Unit = {
     DummyPrinter.clear()
   }
 
-  val cmd = new ListAllCommand(DummyPrinter)
+  val listAll = new ListAllCommand(DummyPrinter)
+  val top10   = new Top10Command(DummyPrinter)
 
-  "Command" should "list Marvel characters in alphabetical order" in {
-    cmd.execute() map { _ =>
+  "ListAllCommand.execute()" should "list all Marvel characters in alphabetical order" in {
+    listAll.execute() map { _ =>
       val output = DummyPrinter.toList
       output should contain inOrder ("Agent Zero", "Zzzax")
       // lowercase or "Giant-dok" was not less than or equal to
@@ -42,4 +49,58 @@ class CommandSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterEach {
     }
   }
 
+  val superHeroGen = for {
+    name <- Gen.oneOf("Thor",
+                      "Iron Man",
+                      "Captain America",
+                      "Wolverine",
+                      "Hulk",
+                      "Spider-Man",
+                      "Daredevil",
+                      "Batman",
+                      "Hubert")
+    issues <- Gen.choose(0, 2000)
+  } yield MarvelCharacter(name = name, issues = issues)
+
+  val listSuperHeroesGen = Gen.containerOf[List, MarvelCharacter](superHeroGen)
+
+  "Top10Command.mostPopular(n)" should "retain the most popular characters" in {
+    forAll(listSuperHeroesGen, Gen.choose(2, 20)) {
+      (cs: List[MarvelCharacter], n: Int) =>
+        whenever(n <= cs.size) {
+          val tops   = top10.mostPopular(n)(cs)
+          val losers = tops.toSet diff cs.toSet
+          assert(losers forall { loser =>
+            tops.forall(_.issues >= loser.issues)
+          })
+        }
+    }
+  }
+
+  it should "sort character by decreasing order of popularity" in {
+    forAll(listSuperHeroesGen, Gen.choose(2, 20)) {
+      (cs: List[MarvelCharacter], n: Int) =>
+        whenever(n <= cs.size) {
+          val tops = top10.mostPopular(n)(cs)
+          tops.map(_.issues).reverse shouldBe sorted
+        }
+    }
+  }
+
+  it should "only retain the specified number of superheroes" in {
+    forAll(listSuperHeroesGen, Gen.choose(2, 20)) {
+      (cs: List[MarvelCharacter], n: Int) =>
+        whenever(n <= cs.size) {
+          val tops = top10.mostPopular(n)(cs)
+          tops.size should be(n)
+        }
+    }
+  }
+
+  "Top10Command.execute()" should "list 10 names" in {
+    top10.execute() map { _ =>
+      val output = DummyPrinter.toList
+      assert(output.size === 10)
+    }
+  }
 }
