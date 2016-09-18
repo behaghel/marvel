@@ -26,12 +26,18 @@ import scala.concurrent.duration._
 
 object Main {
 
-  implicit object StdOutPrinter extends Printer {
+  object StdOutPrinter extends Printer {
     override def print(s: String) = println(s)
   }
 
   def main(args: Array[String]): Unit = {
-    val command = new Command
+    val command = args.length match {
+      case 0 => new ListAllCommand(StdOutPrinter)
+      case 1 => Command.from(args(0), StdOutPrinter)
+      case _ =>
+        println("Usage: marvel (all | top10)")
+        sys.exit(-1)
+    }
     Await.ready(command.execute(), 2 minutes)
   }
 }

@@ -23,9 +23,25 @@ package org.behaghel.marvel
 
 import scala.concurrent.Future
 
-class Command(implicit printer: Printer) {
+object Command {
+  def from(arg: String, printer: Printer) = arg match {
+    case "top10" => new Top10Command(printer)
+    case _       => new ListAllCommand(printer)
+  }
 
+}
+
+trait Command {
+  def execute: Future[Unit]
+}
+class ListAllCommand(printer: Printer) extends Command {
   lazy val client = new MarvelAPIClient
-
-  def execute(): Future[Unit] = client.listCharacterNames(printer)
+  override def execute(): Future[Unit] =
+    client foreachCharacterInAlphaOrder { character =>
+      printer.print(character.name)
+    }
+}
+class Top10Command(printer: Printer) extends Command {
+  lazy val client                      = new MarvelAPIClient
+  override def execute(): Future[Unit] = client.listTop10(printer)
 }

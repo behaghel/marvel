@@ -33,33 +33,56 @@ class MarvelAPIClient {
   val publicKey  = MarvelConfig.publicKey
   val pageSize   = MarvelConfig.pageSize
 
-  def listCharacterNames(printer: Printer): Future[Unit] = {
+  object CharacterResponse {
+    def buildFrom(json: Json) = CharacterResponse(
+      Character.buildSeqFrom(extractCharacters(json)),
+      extractIntData("offset")(json),
+      extractIntData("count")(json),
+      extractIntData("total")(json)
+    )
+  }
+  case class CharacterResponse(characters: Seq[Character],
+                               offset: Int,
+                               count: Int,
+                               total: Int) {
+    def characterNames = characters.map(_.name)
+  }
+  object Character {
+    def buildSeqFrom(jsonArray: Seq[Json]) = jsonArray map { characterJson =>
+      Character(extractName(characterJson), extractIssues(characterJson))
+    }
+  }
+  case class Character(name: String, issues: Int)
+
+  def listTop10(printer: Printer): Future[Unit] = {
+    Future(())
+  }
+
+  def foreachCharacterInAlphaOrder(f: Character => Unit): Future[Unit] =
+    withCharactersStreamAlpha(f).map(_.head)
+
+  def withCharactersStreamAlpha[T](f: Character => T): Future[Seq[T]] = {
     val futureFirstPage = requestCharacterPage(0, pageSize)
     futureFirstPage flatMap { firstPage =>
-      val total   = extractTotal(firstPage)
-      val count   = extractCount(firstPage)
-      val offsets = (count + 1) to total by pageSize // start from count
-      val requests = offsets map { offset =>
-        requestCharacterPage(offset, pageSize).map(
-          extractNames andThen (_.mkString("\n"))
-        )
+      val offsets = (firstPage.count + 1) to firstPage.total by pageSize // start from count
+      val batchesOfCharacters = offsets map { offset =>
+        requestCharacterPage(offset, pageSize).map(_.characters)
       }
-      val firstPageNames = extractNames(firstPage).mkString("\n")
-      val init           = Future(printer.print(firstPageNames))
-      requests.foldLeft(init)(
-        (futurePrinted, futureNames) =>
-          futureNames.flatMap { names =>
-            futurePrinted.map(_ => printer.print(names))
+      batchesOfCharacters.foldLeft(futureFirstPage.map(_.characters.map(f)))(
+        (processed, charactersBatch) =>
+          charactersBatch.flatMap { characters =>
+            processed.map(_ ++ characters.map(f))
         }
       )
     }
   }
 
-  private def requestCharacterPage(offset: Int, limit: Int): Future[Json] =
+  private def requestCharacterPage(offset: Int,
+                                   limit: Int): Future[CharacterResponse] =
     Future {
       val url        = buildFullUrl("characters?orderBy=name", offset, limit)
       val jsonString = scala.io.Source.fromURL(url).mkString
-      parse(jsonString).getOrElse(Json.Null) // TODO: handle errors
+      CharacterResponse.buildFrom(parse(jsonString).getOrElse(Json.Null)) // TODO: handle errors
     }
 
   private def signatureParam() = {
@@ -75,19 +98,20 @@ class MarvelAPIClient {
   private def buildFullUrl(apiSpecifics: String, offset: Int, limit: Int) =
     s"$baseUrl/$apiSpecifics&${ paginationParam(offset, limit) }&${ signatureParam() }"
 
-  val extractCount: Json => Int =
-    _.hcursor.downField("data").downField("count").as[Int].getOrElse(0)
+  def extractIntData(field: String): Json => Int =
+    _.hcursor.downField("data").downField(field).as[Int].getOrElse(0)
 
-  val extractTotal: Json => Int =
-    _.hcursor.downField("data").downField("total").as[Int].getOrElse(0)
-
-  val extractNames: Json => Seq[String] = json => {
-    val characters = json.hcursor
+  def extractCharacters(characterResponse: Json): Seq[Json] =
+    characterResponse.hcursor
       .downField("data")
       .downField("results")
       .focus
       .flatMap(_.asArray)
       .getOrElse(Nil)
-    characters.flatMap(_.cursor.get[String]("name").toOption)
-  }
+
+  def extractName(character: Json): String =
+    character.cursor.get[String]("name").getOrElse("no name")
+
+  def extractIssues(character: Json): Int =
+    character.hcursor.downField("comics").get[Int]("available").getOrElse(-1)
 }

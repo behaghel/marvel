@@ -23,4 +23,5 @@ package org.behaghel.marvel
 
 trait Printer {
   def print(s: String)
+  def printlnAll(xs: Seq[String]) = print(xs.mkString("\n"))
 }

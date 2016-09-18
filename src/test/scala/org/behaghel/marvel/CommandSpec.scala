@@ -26,17 +26,15 @@ import org.scalatest._
 
 class CommandSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterEach {
 
-  implicit val dummyPrinter = DummyPrinter
-
   override def afterEach(): Unit = {
-    dummyPrinter.clear()
+    DummyPrinter.clear()
   }
 
-  val cmd = new Command
+  val cmd = new ListAllCommand(DummyPrinter)
 
   "Command" should "list Marvel characters in alphabetical order" in {
     cmd.execute() map { _ =>
-      val output = dummyPrinter.toList
+      val output = DummyPrinter.toList
       output should contain inOrder ("Agent Zero", "Zzzax")
       // lowercase or "Giant-dok" was not less than or equal to
       // "Giant-Man (Ultimate)"
