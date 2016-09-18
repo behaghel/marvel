@@ -13,5 +13,7 @@ libraryDependencies ++= Vector(
   "io.circe" %% "circe-parser" % circeVersion
 )
 
+enablePlugins(JavaAppPackaging)
+
 initialCommands := """|import org.behaghel.marvel._
                       |""".stripMargin

@@ -32,7 +32,6 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val command = args.length match {
-      case 0 => new ListAllCommand(StdOutPrinter)
       case 1 => Command.from(args(0), StdOutPrinter)
       case _ =>
         println("Usage: marvel (all | top10)")
