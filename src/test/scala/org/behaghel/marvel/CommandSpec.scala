@@ -21,9 +21,10 @@
 
 package org.behaghel.marvel
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import org.scalatest._
 
-class CommandSpec extends FlatSpec with Matchers with BeforeAndAfterEach {
+class CommandSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterEach {
 
   implicit val dummyPrinter = DummyPrinter
 
@@ -34,15 +35,13 @@ class CommandSpec extends FlatSpec with Matchers with BeforeAndAfterEach {
   val cmd = new Command
 
   "Command" should "list Marvel characters in alphabetical order" in {
-    cmd.execute()
-    val output = dummyPrinter.toList
-    output should contain inOrder ("Agent Zero", "Zzzax")
-    // lowercase or "Giant-dok" was not less than or equal to
-    // "Giant-Man (Ultimate)"
-    output.view.map(_.toLowerCase) shouldBe sorted
-    // output.view.zip(output.tail) foreach { pair =>
-    //   pair._1 should be <= pair._2
-    // }
+    cmd.execute() map { _ =>
+      val output = dummyPrinter.toList
+      output should contain inOrder ("Agent Zero", "Zzzax")
+      // lowercase or "Giant-dok" was not less than or equal to
+      // "Giant-Man (Ultimate)"
+      output.map(_.toLowerCase) shouldBe sorted
+    }
   }
 
 }

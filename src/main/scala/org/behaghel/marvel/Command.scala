@@ -21,11 +21,11 @@
 
 package org.behaghel.marvel
 
+import scala.concurrent.Future
+
 class Command(implicit printer: Printer) {
 
   lazy val client = new MarvelAPIClient
 
-  def execute(): Unit = {
-    printer.print(client.listCharacterNames())
-  }
+  def execute(): Future[Unit] = client.listCharacterNames(printer)
 }

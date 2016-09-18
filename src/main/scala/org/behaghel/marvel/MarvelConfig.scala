@@ -28,4 +28,5 @@ object MarvelConfig {
   def baseUrl    = conf.getString("marvel.api.baseUrl")
   def privateKey = conf.getString("marvel.api.privateKey")
   def publicKey  = conf.getString("marvel.api.publicKey")
+  def pageSize   = conf.getInt("marvel.api.pageSize")
 }

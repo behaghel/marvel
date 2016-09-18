@@ -21,6 +21,9 @@
 
 package org.behaghel.marvel
 
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
 object Main {
 
   implicit object StdOutPrinter extends Printer {
@@ -29,7 +32,6 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val command = new Command
-    command.execute()
+    Await.ready(command.execute(), 2 minutes)
   }
-
 }
